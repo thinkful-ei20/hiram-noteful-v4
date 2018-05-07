@@ -7,11 +7,13 @@ userSchema = mongoose.Schema({
   password: { type: String, required: true }
 });
 
-userSchema.set("toObject", ret => {
-  ret.id = ret._id;
-  delete ret._id;
-  delete ret.__v;
-  delete ret.password;
+userSchema.set("toObject", {
+  transform: (doc, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    delete ret.password;
+  }
 });
 
 userSchema.statics.hashPassword = password => {
