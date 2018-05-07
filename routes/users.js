@@ -18,7 +18,13 @@ router.post("/", (req, res, next) => {
         .location(`${req.originalUrl}/${user.id}`)
         .json(user);
     })
-    .catch(next);
+    .catch(err => {
+      if (err.code === 11000) {
+        err = new Error("Username already exists");
+        err.status = 400;
+      }
+      next(err);
+    });
 });
 
 module.exports = router;
