@@ -1,21 +1,28 @@
-'use strict';
+"use strict"
 
-const mongoose = require('mongoose');
+const mongoose = require(`mongoose`)
 
-const noteSchema = mongoose.Schema({
-  title: { type: String, required: true },
-  content: String,
-  folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder' },
-  tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }]
-}, { timestamps: true});
+const noteSchema = mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: `User`,
+      required: true
+    },
+    title: { type: String, required: true },
+    content: String,
+    folderId: { type: mongoose.Schema.Types.ObjectId, ref: `Folder` },
+    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: `Tag` }]
+  },
+  { timestamps: true }
+)
 
-
-noteSchema.set('toObject', {
-  transform: function (doc, ret) {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
+noteSchema.set(`toObject`, {
+  transform: function(doc, ret) {
+    ret.id = ret._id
+    delete ret._id
+    delete ret.__v
   }
-});
+})
 
-module.exports = mongoose.model('Note', noteSchema);
+module.exports = mongoose.model(`Note`, noteSchema)
