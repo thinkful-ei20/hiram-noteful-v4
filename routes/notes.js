@@ -7,6 +7,8 @@ const router = express.Router()
 const mongoose = require(`mongoose`)
 
 const Note = require(`../models/note`)
+const Tag = require(`../models/tag`)
+const Folder = require(`../models/folder`)
 
 router.use(
   `/`,
@@ -92,6 +94,16 @@ router.post(`/`, (req, res, next) => {
     return next(err)
   }
 
+  Folder.findOne({ _id: folderId, userId })
+    .then(result => {
+      if (!result) {
+        const err = new Error(`The item is not valid`)
+        err.status = 400
+        return next(err)
+      }
+    })
+    .catch(next)
+
   if (tags) {
     tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
@@ -101,6 +113,16 @@ router.post(`/`, (req, res, next) => {
       }
     })
   }
+
+  Tag.find({ _id: { $in: tags }, userId })
+    .then(results => {
+      if (results.length !== tags.length) {
+        const err = new Error(`The item is not valid`)
+        err.status = 400
+        return next(err)
+      }
+    })
+    .catch(next)
 
   Note.create({ title, content, folderId, tags, userId })
     .then(result => {
