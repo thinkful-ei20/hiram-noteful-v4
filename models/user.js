@@ -1,29 +1,29 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const mongoose = require(`mongoose`)
+const bcrypt = require(`bcryptjs`)
 
-userSchema = mongoose.Schema({
-  fullname: { type: String, default: "" },
+const userSchema = mongoose.Schema({
+  fullname: { type: String, default: `` },
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true }
-});
+})
 
-userSchema.set("toObject", {
+userSchema.set(`toObject`, {
   transform: (doc, ret) => {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
-    delete ret.password;
+    ret.id = ret._id
+    delete ret._id
+    delete ret.__v
+    delete ret.password
   }
-});
+})
 
 userSchema.statics.hashPassword = password => {
-  return bcrypt.hash(password, 10);
-};
+  return bcrypt.hash(password, 10)
+}
 
 userSchema.methods.validatePassword = function(password) {
-  return bcrypt.compare(password, this.password);
-};
+  return bcrypt.compare(password, this.password)
+}
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model(`User`, userSchema)
 
-module.exports = User;
+module.exports = User

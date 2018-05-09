@@ -4,7 +4,7 @@ const mongoose = require(`mongoose`)
 
 const folderSchema = mongoose.Schema(
   {
-    name: { type: String },
+    name: { type: String, required: true },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: `User`,

@@ -1,20 +1,26 @@
-'use strict';
+"use strict"
 
-const mongoose = require('mongoose');
+const mongoose = require(`mongoose`)
 
-const { MONGODB_URI } = require('../config');
-const Note = require('../models/note');
-const Folder = require('../models/folder');
-const Tag = require('../models/tag');
+const { MONGODB_URI } = require(`../config`)
+const User = require(`../models/user`)
+const Note = require(`../models/note`)
+const Folder = require(`../models/folder`)
+const Tag = require(`../models/tag`)
 
-const seedNotes = require('../db/seed/notes');
-const seedFolders = require('../db/seed/folders');
-const seedTags = require('../db/seed/tags');
+const seedUsers = require(`../db/seed/users`)
+const seedNotes = require(`../db/seed/notes`)
+const seedFolders = require(`../db/seed/folders`)
+const seedTags = require(`../db/seed/tags`)
 
-mongoose.connect(MONGODB_URI)
+mongoose
+  .connect(MONGODB_URI)
   .then(() => mongoose.connection.db.dropDatabase())
   .then(() => {
     return Promise.all([
+      User.insertMany(seedUsers),
+      User.createIndexes(),
+
       Note.insertMany(seedNotes),
 
       Folder.insertMany(seedFolders),
@@ -22,10 +28,10 @@ mongoose.connect(MONGODB_URI)
 
       Tag.insertMany(seedTags),
       Tag.createIndexes()
-    ]);
+    ])
   })
   .then(() => mongoose.disconnect())
   .catch(err => {
-    console.error(`ERROR: ${err.message}`);
-    console.error(err);
-  });
+    console.error(`ERROR: ${err.message}`)
+    console.error(err)
+  })
