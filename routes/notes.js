@@ -98,7 +98,7 @@ router.post(`/`, (req, res, next) => {
     Folder.findOne({ _id: folderId, userId })
       .then(result => {
         if (!result) {
-          const err = new Error(`The item is not valid`)
+          const err = new Error(`The \`folderId\` is not valid`)
           err.status = 400
           return next(err)
         }
@@ -109,7 +109,7 @@ router.post(`/`, (req, res, next) => {
   if (tags) {
     tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
-        const err = new Error(`The \`id\` is not valid`)
+        const err = new Error(`The \`tags.id\` is not valid`)
         err.status = 400
         return next(err)
       }
@@ -119,7 +119,7 @@ router.post(`/`, (req, res, next) => {
   Tag.find({ _id: { $in: tags }, userId })
     .then(results => {
       if (results.length !== tags.length) {
-        const err = new Error(`The item is not valid`)
+        const err = new Error(`The \`tags.id\` is not valid`)
         err.status = 400
         return next(err)
       }
@@ -167,7 +167,7 @@ router.put(`/:id`, (req, res, next) => {
     Folder.findOne({ _id: folderId, userId })
       .then(result => {
         if (!result) {
-          const err = new Error(`The item is not valid`)
+          const err = new Error(`The \`folderId\` is not valid`)
           err.status = 400
           return next(err)
         }
@@ -188,7 +188,7 @@ router.put(`/:id`, (req, res, next) => {
   Tag.find({ _id: { $in: tags }, userId })
     .then(results => {
       if (results.length !== tags.length) {
-        const err = new Error(`The item is not valid`)
+        const err = new Error(`The \`tags.id\` is not valid`)
         err.status = 400
         return next(err)
       }
