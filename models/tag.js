@@ -1,17 +1,27 @@
-'use strict';
+"use strict"
 
-const mongoose = require('mongoose');
+const mongoose = require(`mongoose`)
 
-const tagSchema = new mongoose.Schema({
-  name: { type: String, unique: true, required: true }
-}, { timestamps: true });
+const tagSchema = new mongoose.Schema(
+  {
+    name: { type: String, unique: true, required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: `User`,
+      required: true
+    }
+  },
+  { timestamps: true }
+)
 
-tagSchema.set('toObject', {
-  transform: function (doc, ret) {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
+tagSchema.index({ name: 1, userId: 1 }, { unique: true })
+
+tagSchema.set(`toObject`, {
+  transform: function(doc, ret) {
+    ret.id = ret._id
+    delete ret._id
+    delete ret.__v
   }
-});
+})
 
-module.exports = mongoose.model('Tag', tagSchema);
+module.exports = mongoose.model(`Tag`, tagSchema)
