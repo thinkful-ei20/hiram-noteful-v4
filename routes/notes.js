@@ -94,15 +94,17 @@ router.post(`/`, (req, res, next) => {
     return next(err)
   }
 
-  Folder.findOne({ _id: folderId, userId })
-    .then(result => {
-      if (!result) {
-        const err = new Error(`The item is not valid`)
-        err.status = 400
-        return next(err)
-      }
-    })
-    .catch(next)
+  if (folderId) {
+    Folder.findOne({ _id: folderId, userId })
+      .then(result => {
+        if (!result) {
+          const err = new Error(`The item is not valid`)
+          err.status = 400
+          return next(err)
+        }
+      })
+      .catch(next)
+  }
 
   if (tags) {
     tags.forEach(tag => {
@@ -161,6 +163,18 @@ router.put(`/:id`, (req, res, next) => {
     return next(err)
   }
 
+  if (folderId) {
+    Folder.findOne({ _id: folderId, userId })
+      .then(result => {
+        if (!result) {
+          const err = new Error(`The item is not valid`)
+          err.status = 400
+          return next(err)
+        }
+      })
+      .catch(next)
+  }
+
   if (tags) {
     tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
@@ -170,6 +184,16 @@ router.put(`/:id`, (req, res, next) => {
       }
     })
   }
+
+  Tag.find({ _id: { $in: tags }, userId })
+    .then(results => {
+      if (results.length !== tags.length) {
+        const err = new Error(`The item is not valid`)
+        err.status = 400
+        return next(err)
+      }
+    })
+    .catch(next)
 
   Note.findOneAndUpdate(
     { _id: id, userId },
