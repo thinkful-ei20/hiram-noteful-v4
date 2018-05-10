@@ -6,16 +6,25 @@ const mongoose = require(`mongoose`)
 
 const { TEST_MONGODB_URI } = require(`../config`)
 
+const User = require(`../models/user`)
 const Note = require(`../models/note`)
 const Folder = require(`../models/folder`)
+const Tag = require(`../models/tag`)
+const seedUsers = require(`../db/seed/users`)
 const seedNotes = require(`../db/seed/notes`)
 const seedFolders = require(`../db/seed/folders`)
+const seedTags = require(`../db/seed/tags`)
 
 const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe.skip(`Noteful API - Notes`, function() {
+const testUser = { username: `user0`, password: `password` }
+const testId = `333333333333333333333300`
+
+describe.only(`Noteful API - Notes`, function() {
+  let token
+
   before(function() {
     return mongoose
       .connect(TEST_MONGODB_URI)
@@ -24,9 +33,27 @@ describe.skip(`Noteful API - Notes`, function() {
 
   beforeEach(function() {
     return Promise.all([
-      Note.insertMany(seedNotes),
-      Folder.insertMany(seedFolders)
-    ]).then(() => Note.createIndexes())
+      User.insertMany(seedUsers),
+      Folder.insertMany(seedFolders),
+      Tag.insertMany(seedTags),
+      Note.insertMany(seedNotes)
+    ])
+      .then(() =>
+        Promise.all([
+          User.createIndexes(),
+          Tag.createIndexes(),
+          Folder.createIndexes()
+        ])
+      )
+      .then(() =>
+        chai
+          .request(app)
+          .post(`/api/login`)
+          .send(testUser)
+      )
+      .then(res => {
+        token = res.body.authToken
+      })
   })
 
   afterEach(function() {
@@ -40,8 +67,11 @@ describe.skip(`Noteful API - Notes`, function() {
   describe(`GET /api/notes`, function() {
     it(`should return the correct number of Notes`, function() {
       return Promise.all([
-        Note.find(),
-        chai.request(app).get(`/api/notes`)
+        Note.find({ userId: testId }),
+        chai
+          .request(app)
+          .get(`/api/notes`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
@@ -52,8 +82,11 @@ describe.skip(`Noteful API - Notes`, function() {
 
     it(`should return a list with the correct right fields`, function() {
       return Promise.all([
-        Note.find(),
-        chai.request(app).get(`/api/notes`)
+        Note.find({ userId: testId }),
+        chai
+          .request(app)
+          .get(`/api/notes`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
@@ -68,7 +101,8 @@ describe.skip(`Noteful API - Notes`, function() {
             `createdAt`,
             `updatedAt`,
             `folderId`,
-            `tags`
+            `tags`,
+            `userId`
           )
         })
       })
@@ -78,15 +112,16 @@ describe.skip(`Noteful API - Notes`, function() {
       const searchTerm = `gaga`
 
       return Promise.all([
-        Note.find({ title: { $regex: searchTerm } }),
-        chai.request(app).get(`/api/notes?searchTerm=${searchTerm}`)
+        Note.find({ title: { $regex: searchTerm }, userId: testId }),
+        chai
+          .request(app)
+          .get(`/api/notes?searchTerm=${searchTerm}`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
         expect(res.body).to.be.a(`array`)
-        expect(res.body).to.have.length(1)
-        expect(res.body[0]).to.be.an(`object`)
-        expect(res.body[0].id).to.equal(data[0].id)
+        expect(res.body).to.have.length(data.length)
       })
     })
 
@@ -96,8 +131,11 @@ describe.skip(`Noteful API - Notes`, function() {
         .then(_data => {
           data = _data
           return Promise.all([
-            Note.find({ folderId: data.id }),
-            chai.request(app).get(`/api/notes?folderId=${data.id}`)
+            Note.find({ folderId: data.id, userId: testId }),
+            chai
+              .request(app)
+              .get(`/api/notes?folderId=${data.id}`)
+              .set(`authorization`, `Bearer ${token}`)
           ])
         })
         .then(([data, res]) => {
@@ -112,8 +150,11 @@ describe.skip(`Noteful API - Notes`, function() {
       const searchTerm = `NotValid`
 
       return Promise.all([
-        Note.find({ title: { $regex: searchTerm } }),
-        chai.request(app).get(`/api/notes?searchTerm=${searchTerm}`)
+        Note.find({ title: { $regex: searchTerm }, username: `user0` }),
+        chai
+          .request(app)
+          .get(`/api/notes?searchTerm=${searchTerm}`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
@@ -126,10 +167,13 @@ describe.skip(`Noteful API - Notes`, function() {
   describe(`GET /api/notes/:id`, function() {
     it(`should return correct note`, function() {
       let data
-      return Note.findOne()
+      return Note.findOne({ userId: testId })
         .then(_data => {
           data = _data
-          return chai.request(app).get(`/api/notes/${data.id}`)
+          return chai
+            .request(app)
+            .get(`/api/notes/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
         })
         .then(res => {
           expect(res).to.have.status(200)
@@ -143,7 +187,8 @@ describe.skip(`Noteful API - Notes`, function() {
             `createdAt`,
             `updatedAt`,
             `folderId`,
-            `tags`
+            `tags`,
+            `userId`
           )
 
           expect(res.body.id).to.equal(data.id)
@@ -156,18 +201,10 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .get(`/api/notes/INVALID`)
+        .set(`authorization`, `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(400)
           expect(res.body.message).to.eq(`The \`id\` is not valid`)
-        })
-    })
-
-    it(`should respond with a 404 for an invalid id`, function() {
-      return chai
-        .request(app)
-        .get(`/api/notes/AAAAAAAAAAAAAAAAAAAAAAAA`)
-        .then(res => {
-          expect(res).to.have.status(404)
         })
     })
   })
@@ -176,14 +213,14 @@ describe.skip(`Noteful API - Notes`, function() {
     it(`should create and return a new item when provided valid data`, function() {
       const newItem = {
         title: `The best article about cats ever!`,
-        content:
-          `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor...`
+        content: `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor...`
       }
       let res
       return chai
         .request(app)
         .post(`/api/notes`)
         .send(newItem)
+        .set(`authorization`, `Bearer ${token}`)
         .then(function(_res) {
           res = _res
           expect(res).to.have.status(201)
@@ -196,7 +233,8 @@ describe.skip(`Noteful API - Notes`, function() {
             `content`,
             `createdAt`,
             `updatedAt`,
-            `tags`
+            `tags`,
+            `userId`
           )
           return Note.findById(res.body.id)
         })
@@ -214,6 +252,7 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .post(`/api/notes`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(newItem)
         .then(res => {
           expect(res).to.have.status(400)
@@ -231,12 +270,13 @@ describe.skip(`Noteful API - Notes`, function() {
         content: `woof woof`
       }
       let data
-      return Note.findOne()
+      return Note.findOne({ userId: testId })
         .then(_data => {
           data = _data
           return chai
             .request(app)
             .put(`/api/notes/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
             .send(updateItem)
         })
         .then(function(res) {
@@ -250,7 +290,8 @@ describe.skip(`Noteful API - Notes`, function() {
             `createdAt`,
             `updatedAt`,
             `folderId`,
-            `tags`
+            `tags`,
+            `userId`
           )
 
           expect(res.body.id).to.equal(data.id)
@@ -268,6 +309,7 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .put(`/api/notes/INVALID`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .then(res => {
           expect(res).to.have.status(400)
@@ -275,7 +317,7 @@ describe.skip(`Noteful API - Notes`, function() {
         })
     })
 
-    it(`should respond with a 404 for an invalid id`, function() {
+    it(`should respond with a 404 for a missing id`, function() {
       const updateItem = {
         title: `What about dogs?!`,
         content: `woof woof`
@@ -284,6 +326,7 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .put(`/api/notes/AAAAAAAAAAAAAAAAAAAAAAAA`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .then(res => {
           expect(res).to.have.status(404)
@@ -295,6 +338,7 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .put(`/api/notes/INVALID`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .then(res => {
           expect(res).to.have.status(400)
@@ -309,12 +353,13 @@ describe.skip(`Noteful API - Notes`, function() {
         foo: `bar`
       }
       let data
-      return Note.findOne()
+      return Note.findOne({ userId: testId })
         .then(_data => {
           data = _data
           return chai
             .request(app)
             .put(`/api/notes/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
             .send(updateItem)
         })
         .then(res => {
@@ -329,10 +374,13 @@ describe.skip(`Noteful API - Notes`, function() {
   describe(`DELETE /api/notes/:id`, function() {
     it(`should delete an existing document and respond with 204`, function() {
       let data
-      return Note.findOne()
+      return Note.findOne({ userId: testId })
         .then(_data => {
           data = _data
-          return chai.request(app).delete(`/api/notes/${data.id}`)
+          return chai
+            .request(app)
+            .delete(`/api/notes/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
         })
         .then(function(res) {
           expect(res).to.have.status(204)
@@ -347,6 +395,7 @@ describe.skip(`Noteful API - Notes`, function() {
       return chai
         .request(app)
         .delete(`/api/notes/DOESNOTEXIST`)
+        .set(`authorization`, `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(204)
         })
