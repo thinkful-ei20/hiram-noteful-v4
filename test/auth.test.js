@@ -11,7 +11,7 @@ const User = require(`../models/user`)
 const expect = chai.expect
 chai.use(chaiHttp)
 
-describe(`Noteful API - Login`, function() {
+describe.only(`Noteful API - Login`, function() {
   const fullname = `Example User`
   const username = `exampleUser`
   const password = `password`
@@ -23,7 +23,9 @@ describe(`Noteful API - Login`, function() {
   })
 
   beforeEach(function() {
-    return User.create({ fullname, username, password })
+    return User.hashPassword(password).then(hash => {
+      return User.create({ username, fullname, password: hash })
+    })
   })
 
   afterEach(function() {
@@ -65,18 +67,20 @@ describe(`Noteful API - Login`, function() {
     return chai
       .request(app)
       .post(`/api/login`)
+      .send({ username: `aufhauilsfhasd`, password })
       .then(res => {
-        expect(res).to.have.status(400)
-        expect(res.body.message).to.eq(`Bad Request`)
+        expect(res).to.have.status(500)
+        expect(res.body.message).to.eq(`Incorrect Username`)
       })
   })
   it(`Should reject requests with incorrect passwords`, () => {
     return chai
       .request(app)
       .post(`/api/login`)
+      .send({ username, password: `adijasasfdfifa` })
       .then(res => {
-        expect(res).to.have.status(400)
-        expect(res.body.message).to.eq(`Bad Request`)
+        expect(res).to.have.status(500)
+        expect(res.body.message).to.eq(`Incorrect Password`)
       })
   })
 })

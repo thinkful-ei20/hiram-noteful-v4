@@ -81,11 +81,14 @@ router.post(`/`, (req, res, next) => {
 
   const newUser = {
     fullname: req.body.fullname.trim(),
-    username: req.body.username,
-    password: req.body.password
+    username: req.body.username
   }
 
-  User.create(newUser)
+  User.hashPassword(req.body.password)
+    .then(hash => {
+      newUser.password = hash
+      return User.create(newUser)
+    })
     .then(user => {
       return res
         .status(201)
