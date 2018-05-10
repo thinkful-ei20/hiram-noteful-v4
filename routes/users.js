@@ -81,16 +81,13 @@ router.post(`/`, (req, res, next) => {
 
   const newUser = {
     fullname: req.body.fullname.trim(),
-    username: req.body.username
+    username: req.body.username,
+    password: req.body.password
   }
 
-  User.hashPassword(req.body.password)
-    .then(password => {
-      newUser.password = password
-      return User.create(newUser)
-    })
+  User.create(newUser)
     .then(user => {
-      res
+      return res
         .status(201)
         .location(`${req.originalUrl}/${user.id}`)
         .json(user)
