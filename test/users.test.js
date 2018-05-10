@@ -223,9 +223,9 @@ describe(`Noteful API - Users`, function() {
       })
       it(`Should return an array of users`, function() {
         const testUser0 = {
-          username: `${username}`,
-          password: `${password}`,
-          fullname: ` ${fullname} `
+          username: `${username}0`,
+          password: `${password}0`,
+          fullname: ` ${fullname}0`
         }
         const testUser1 = {
           username: `${username}1`,
@@ -238,7 +238,13 @@ describe(`Noteful API - Users`, function() {
           fullname: `${fullname}2`
         }
 
-        return User.insertMany([testUser0, testUser1, testUser2])
+        return chai
+          .request(app)
+          .post(`/api/users`)
+          .send({ username, password, fullname })
+          .then(() => {
+            return User.insertMany([testUser0, testUser1, testUser2])
+          })
           .then(() => {
             return chai
               .request(app)
@@ -256,7 +262,7 @@ describe(`Noteful API - Users`, function() {
           })
           .then(res => {
             const users = res.body
-            expect(users.length).to.eq(3)
+            expect(users.length).to.eq(4)
             expect(users[0].username).to.eq(username)
           })
       })

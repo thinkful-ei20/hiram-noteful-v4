@@ -11,7 +11,7 @@ const User = require(`../models/user`)
 const expect = chai.expect
 chai.use(chaiHttp)
 
-describe.only(`Noteful API - Login`, function() {
+describe(`Noteful API - Login`, function() {
   const fullname = `Example User`
   const username = `exampleUser`
   const password = `password`
@@ -82,5 +82,66 @@ describe.only(`Noteful API - Login`, function() {
         expect(res).to.have.status(500)
         expect(res.body.message).to.eq(`Incorrect Password`)
       })
+  })
+
+  describe(`/api/refresh`, function() {
+    it(`should return a valid auth token with a newer expiry date`, function() {
+      const user = { username, fullname }
+      const token = jwt.sign({ user }, JWT_SECRET, {
+        subject: username,
+        expiresIn: `1m`
+      })
+      const decoded = jwt.decode(token)
+
+      return chai
+        .request(app)
+        .post(`/api/refresh`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .then(res => {
+          expect(res).to.have.status(200)
+          expect(res.body).to.been.a(`object`)
+          const authToken = res.body.authToken
+          expect(authToken).to.be.a(`string`)
+
+          const payload = jwt.verify(authToken, JWT_SECRET)
+          expect(payload.user).to.deep.equal({ username, fullname })
+          expect(payload.exp).to.be.greaterThan(decoded.exp)
+        })
+    })
+
+    it(`should reject requests with no credentials`, () => {
+      return chai
+        .request(app)
+        .post(`/api/refresh`)
+        .then(res => {
+          expect(res).to.have.status(401)
+        })
+    })
+
+    it(`should reject requests with an invalid token`, () => {
+      return chai
+        .request(app)
+        .post(`/api/refresh`)
+        .set(`Authorization`, `Bearer ausdhflaiudhsfaluhlsdi`)
+        .then(res => {
+          expect(res).to.have.status(401)
+        })
+    })
+
+    it(`should reject requests with an expired token`, () => {
+      const user = { username, fullname }
+      const token = jwt.sign({ user }, JWT_SECRET, {
+        subject: username,
+        expiresIn: `0`
+      })
+
+      return chai
+        .request(app)
+        .post(`/api/refresh`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .then(res => {
+          expect(res).to.have.status(401)
+        })
+    })
   })
 })
