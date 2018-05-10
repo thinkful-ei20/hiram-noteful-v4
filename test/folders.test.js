@@ -8,12 +8,18 @@ const { TEST_MONGODB_URI } = require(`../config`)
 
 const Folder = require(`../models/folder`)
 const seedFolders = require(`../db/seed/folders`)
+const User = require(`../models/user`)
+const seedUsers = require(`../db/seed/users`)
 
 const expect = chai.expect
 
 chai.use(chaiHttp)
 
-describe.skip(`Noteful API - Folders`, function() {
+const testUser = { username: `user0`, password: `password` }
+const testId = `333333333333333333333300`
+let token
+
+describe.only(`Noteful API - Folders`, function() {
   before(function() {
     return mongoose
       .connect(TEST_MONGODB_URI)
@@ -21,7 +27,19 @@ describe.skip(`Noteful API - Folders`, function() {
   })
 
   beforeEach(function() {
-    return Folder.insertMany(seedFolders).then(() => Folder.createIndexes())
+    return User.insertMany(seedUsers)
+      .then(() => User.createIndexes)
+      .then(() => Folder.insertMany(seedFolders))
+      .then(() => Folder.createIndexes())
+      .then(() =>
+        chai
+          .request(app)
+          .post(`/api/login`)
+          .send(testUser)
+      )
+      .then(res => {
+        token = res.body.authToken
+      })
   })
 
   afterEach(function() {
@@ -35,8 +53,11 @@ describe.skip(`Noteful API - Folders`, function() {
   describe(`GET /api/folders`, function() {
     it(`should return the correct number of folders`, function() {
       return Promise.all([
-        Folder.find(),
-        chai.request(app).get(`/api/folders`)
+        Folder.find({ userId: testId }),
+        chai
+          .request(app)
+          .get(`/api/folders`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
@@ -47,8 +68,11 @@ describe.skip(`Noteful API - Folders`, function() {
 
     it(`should return a list with the correct right fields`, function() {
       return Promise.all([
-        Folder.find(),
-        chai.request(app).get(`/api/folders`)
+        Folder.find({ userId: testId }),
+        chai
+          .request(app)
+          .get(`/api/folders`)
+          .set(`authorization`, `Bearer ${token}`)
       ]).then(([data, res]) => {
         expect(res).to.have.status(200)
         expect(res).to.be.json
@@ -56,7 +80,13 @@ describe.skip(`Noteful API - Folders`, function() {
         expect(res.body).to.have.length(data.length)
         res.body.forEach(function(item) {
           expect(item).to.be.a(`object`)
-          expect(item).to.have.keys(`id`, `name`, `createdAt`, `updatedAt`)
+          expect(item).to.have.keys(
+            `id`,
+            `name`,
+            `createdAt`,
+            `updatedAt`,
+            `userId`
+          )
         })
       })
     })
@@ -65,18 +95,27 @@ describe.skip(`Noteful API - Folders`, function() {
   describe(`GET /api/folders/:id`, function() {
     it(`should return correct folder`, function() {
       let data
-      return Folder.findOne()
+      return Folder.findOne({ userId: testId })
         .select(`id name`)
         .then(_data => {
           data = _data
-          return chai.request(app).get(`/api/folders/${data.id}`)
+          return chai
+            .request(app)
+            .get(`/api/folders/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
         })
         .then(res => {
           expect(res).to.have.status(200)
           expect(res).to.be.json
 
           expect(res.body).to.be.an(`object`)
-          expect(res.body).to.have.keys(`id`, `name`, `createdAt`, `updatedAt`)
+          expect(res.body).to.have.keys(
+            `id`,
+            `name`,
+            `createdAt`,
+            `updatedAt`,
+            `userId`
+          )
 
           expect(res.body.id).to.equal(data.id)
           expect(res.body.name).to.equal(data.name)
@@ -89,6 +128,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .get(`/api/folders/${badId}`)
+        .set(`authorization`, `Bearer ${token}`)
         .catch(err => err.response)
         .then(res => {
           expect(res).to.have.status(400)
@@ -100,6 +140,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .get(`/api/folders/AAAAAAAAAAAAAAAAAAAAAAAA`)
+        .set(`authorization`, `Bearer ${token}`)
         .catch(err => err.response)
         .then(res => {
           expect(res).to.have.status(404)
@@ -116,6 +157,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .post(`/api/folders`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(newItem)
         .then(function(res) {
           body = res.body
@@ -140,6 +182,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .post(`/api/folders`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(newItem)
         .catch(err => err.response)
         .then(res => {
@@ -151,13 +194,14 @@ describe.skip(`Noteful API - Folders`, function() {
     })
 
     it(`should return an error when given a duplicate name`, function() {
-      return Folder.findOne()
+      return Folder.findOne({ userId: testId })
         .select(`id name`)
         .then(data => {
           const newItem = { name: data.name }
           return chai
             .request(app)
             .post(`/api/folders`)
+            .set(`authorization`, `Bearer ${token}`)
             .send(newItem)
         })
         .catch(err => err.response)
@@ -176,13 +220,14 @@ describe.skip(`Noteful API - Folders`, function() {
         name: `Updated Name`
       }
       let data
-      return Folder.findOne()
+      return Folder.findOne({ userId: testId })
         .select(`id name`)
         .then(_data => {
           data = _data
           return chai
             .request(app)
             .put(`/api/folders/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
             .send(updateItem)
         })
         .then(function(res) {
@@ -205,6 +250,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .put(`/api/folders/${badId}`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .catch(err => err.response)
         .then(res => {
@@ -221,6 +267,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .put(`/api/folders/AAAAAAAAAAAAAAAAAAAAAAAA`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .catch(err => err.response)
         .then(res => {
@@ -236,6 +283,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .put(`/api/folders/9999`)
+        .set(`authorization`, `Bearer ${token}`)
         .send(updateItem)
         .catch(err => err.response)
         .then(res => {
@@ -247,7 +295,7 @@ describe.skip(`Noteful API - Folders`, function() {
     })
 
     it(`should return an error when given a duplicate name`, function() {
-      return Folder.find()
+      return Folder.find({ userId: testId })
         .select(`id name`)
         .limit(2)
         .then(results => {
@@ -256,6 +304,7 @@ describe.skip(`Noteful API - Folders`, function() {
           return chai
             .request(app)
             .put(`/api/folders/${item1.id}`)
+            .set(`authorization`, `Bearer ${token}`)
             .send(item1)
         })
         .catch(err => err.response)
@@ -271,10 +320,13 @@ describe.skip(`Noteful API - Folders`, function() {
   describe(`DELETE /api/folders/:id`, function() {
     it(`should delete an existing document and respond with 204`, function() {
       let data
-      return Folder.findOne()
+      return Folder.findOne({ userId: testId })
         .then(_data => {
           data = _data
-          return chai.request(app).delete(`/api/folders/${data.id}`)
+          return chai
+            .request(app)
+            .delete(`/api/folders/${data.id}`)
+            .set(`authorization`, `Bearer ${token}`)
         })
         .then(function(res) {
           expect(res).to.have.status(204)
@@ -289,6 +341,7 @@ describe.skip(`Noteful API - Folders`, function() {
       return chai
         .request(app)
         .delete(`/api/folders/DOESNOTEXIST`)
+        .set(`authorization`, `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(204)
         })

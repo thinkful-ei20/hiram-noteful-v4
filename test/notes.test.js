@@ -22,7 +22,7 @@ chai.use(chaiHttp)
 const testUser = { username: `user0`, password: `password` }
 const testId = `333333333333333333333300`
 
-describe.only(`Noteful API - Notes`, function() {
+describe(`Noteful API - Notes`, function() {
   let token
 
   before(function() {
