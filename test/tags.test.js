@@ -19,7 +19,7 @@ const testUser = { username: `user0`, password: `password` }
 const testId = `333333333333333333333300`
 let token
 
-describe.only(`Noteful API - Tags`, function() {
+describe(`Noteful API - Tags`, function() {
   before(function() {
     return mongoose
       .connect(TEST_MONGODB_URI)
