@@ -52,7 +52,31 @@ describe(`Noteful API - Login`, function() {
       })
   })
 
-  it(`Should reject requests with no credentials`)
-  it(`Should reject requests with incorrect usernames`)
-  it(`Should reject requests with incorrect passwords`)
+  it(`Should reject requests with no credentials`, () => {
+    return chai
+      .request(app)
+      .post(`/api/login`)
+      .then(res => {
+        expect(res).to.have.status(400)
+        expect(res.body.message).to.eq(`Bad Request`)
+      })
+  })
+  it(`Should reject requests with incorrect usernames`, () => {
+    return chai
+      .request(app)
+      .post(`/api/login`)
+      .then(res => {
+        expect(res).to.have.status(400)
+        expect(res.body.message).to.eq(`Bad Request`)
+      })
+  })
+  it(`Should reject requests with incorrect passwords`, () => {
+    return chai
+      .request(app)
+      .post(`/api/login`)
+      .then(res => {
+        expect(res).to.have.status(400)
+        expect(res.body.message).to.eq(`Bad Request`)
+      })
+  })
 })
