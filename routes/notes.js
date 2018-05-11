@@ -80,6 +80,7 @@ router.get(`/:id`, (req, res, next) => {
 router.post(`/`, (req, res, next) => {
   const { title, content, folderId, tags = [] } = req.body
   const userId = req.user.id
+  const newNote = { userId }
 
   /***** Never trust users - validate input *****/
   if (!title) {
@@ -87,24 +88,30 @@ router.post(`/`, (req, res, next) => {
     err.status = 400
     return next(err)
   }
+  newNote.title = title
 
-  if (folderId && folderId !== '' && !mongoose.Types.ObjectId.isValid(folderId)) {
-    const err = new Error(`The \`folderId\` is not valid`)
-    err.status = 400
-    return next(err)
-  }
+  if (folderId !== '') {
+    if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+      const err = new Error(`The \`folderId\` is not valid`)
+      err.status = 400
+      return next(err)
+    }
 
-  if (folderId && folderId !== '') {
-    Folder.findOne({ _id: folderId, userId })
-      .then(result => {
-        if (!result) {
-          const err = new Error(`The \`folderId\` is not valid`)
-          err.status = 400
-          return next(err)
-        }
-      })
-      .catch(next)
+    if (folderId) {
+      Folder.findOne({ _id: folderId, userId })
+        .then(result => {
+          if (!result) {
+            const err = new Error(`The \`folderId\` is not valid`)
+            err.status = 400
+            return next(err)
+          } else {
+            newNote.folderId = folderId
+          }
+        })
+        .catch(next)
+    }
   }
+  
 
   if (tags) {
     tags.forEach(tag => {
@@ -122,11 +129,11 @@ router.post(`/`, (req, res, next) => {
         const err = new Error(`The \`tags.id\` is not valid`)
         err.status = 400
         return next(err)
-      }
+      } else { newNote.tags = tags }
     })
     .catch(next)
 
-  Note.create({ title, content, folderId, tags, userId })
+  Note.create(newNote)
     .then(result => {
       res
         .location(`${req.originalUrl}/${result.id}`)
