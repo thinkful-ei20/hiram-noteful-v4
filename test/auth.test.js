@@ -69,7 +69,7 @@ describe(`Noteful API - Login`, function() {
       .post(`/api/login`)
       .send({ username: `aufhauilsfhasd`, password })
       .then(res => {
-        expect(res).to.have.status(500)
+        expect(res).to.have.status(401)
         expect(res.body.message).to.eq(`Incorrect Username`)
       })
   })
@@ -79,7 +79,7 @@ describe(`Noteful API - Login`, function() {
       .post(`/api/login`)
       .send({ username, password: `adijasasfdfifa` })
       .then(res => {
-        expect(res).to.have.status(500)
+        expect(res).to.have.status(401)
         expect(res.body.message).to.eq(`Incorrect Password`)
       })
   })
