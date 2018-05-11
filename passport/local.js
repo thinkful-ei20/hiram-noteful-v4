@@ -10,7 +10,8 @@ const localStrategy = new LocalStrategy((username, password, done) => {
         return Promise.reject({
           reason: `LoginError`,
           message: `Incorrect Username`,
-          location: `username`
+          location: `username`,
+          status: 401
         })
       }
     })
@@ -22,7 +23,8 @@ const localStrategy = new LocalStrategy((username, password, done) => {
         return Promise.reject({
           reason: `LoginError`,
           message: `Incorrect Password`,
-          location: `password`
+          location: `password`,
+          status: 401
         })
       }
       return done(null, user)
