@@ -78,8 +78,9 @@ router.get(`/:id`, (req, res, next) => {
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post(`/`, (req, res, next) => {
-  const { title, content, folderId, tags = [] } = req.body
+  const { title, content, tags = [] } = req.body
   const userId = req.user.id
+  let folderId = req.body.folderId
   if (folderId === '') folderId = null
 
   /***** Never trust users - validate input *****/
@@ -145,8 +146,10 @@ router.post(`/`, (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put(`/:id`, (req, res, next) => {
   const { id } = req.params
-  const { title, content, folderId, tags = [] } = req.body
+  const { title, content, tags = [] } = req.body
   const userId = req.user.id
+  let folderId = req.body.folderId
+  if (folderId === '') folderId = null
 
   /***** Never trust users - validate input *****/
   if (!mongoose.Types.ObjectId.isValid(id)) {
