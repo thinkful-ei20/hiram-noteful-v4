@@ -80,7 +80,7 @@ router.get(`/:id`, (req, res, next) => {
 router.post(`/`, (req, res, next) => {
   const { title, content, folderId, tags = [] } = req.body
   const userId = req.user.id
-  const newNote = { userId }
+  if (folderId === '') folderId = null
 
   /***** Never trust users - validate input *****/
   if (!title) {
@@ -88,7 +88,6 @@ router.post(`/`, (req, res, next) => {
     err.status = 400
     return next(err)
   }
-  newNote.title = title
 
   if (folderId !== '') {
     if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
@@ -104,8 +103,6 @@ router.post(`/`, (req, res, next) => {
             const err = new Error(`The \`folderId\` is not valid`)
             err.status = 400
             return next(err)
-          } else {
-            newNote.folderId = folderId
           }
         })
         .catch(next)
@@ -129,11 +126,11 @@ router.post(`/`, (req, res, next) => {
         const err = new Error(`The \`tags.id\` is not valid`)
         err.status = 400
         return next(err)
-      } else { newNote.tags = tags }
+      }
     })
     .catch(next)
 
-  Note.create(newNote)
+  Note.create({title, content, folderId, tags, userId})
     .then(result => {
       res
         .location(`${req.originalUrl}/${result.id}`)
